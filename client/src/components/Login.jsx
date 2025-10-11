@@ -1,12 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate(); // for routing
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // You can add real validation here
     alert(`Email: ${email}\nPassword: ${password}`);
+    navigate("/home"); // Redirect to Home page after login
   };
 
   return (
@@ -49,14 +53,16 @@ function Login() {
 
         <p className="text-sm text-gray-600 text-center mt-4">
           Don’t have an account?{" "}
-          <a href="#Signup" className="text-indigo-500 hover:underline">
-                Sign-up 
-          </a>
-          </p>
-
-           </div>
-           </div>
-
-)
+          <span
+            onClick={() => navigate("/signup")}
+            className="text-indigo-500 hover:underline cursor-pointer"
+          >
+            Sign-up
+          </span>
+        </p>
+      </div>
+    </div>
+  );
 }
+
 export default Login;

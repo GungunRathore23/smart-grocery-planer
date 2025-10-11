@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "name": "Rice",
+    "description": "Premium quality rice for daily use.",
+    "image": "rice.jpg"
+  },
+  {
+    "id": 2,
+    "name": "Wheat Flour",
+    "description": "Freshly milled wheat flour.",
+    "image": "wheat.jpg"
+  },
+  {
+    "id": 3,
+    "name": "Milk",
+    "description": "Organic dairy milk.",
+    "image": "milk.jpg"
+  },
+  {
+    "id": 4,
+    "name": "Eggs",
+    "description": "Farm fresh eggs.",
+    "image": "eggs.jpg"
+  },
+  {
+    "id": 5,
+    "name": "Sugar",
+    "description": "Refined sugar for your sweet dishes.",
+    "image": "sugar.jpg"
+  },
+  {
+    "id": 6,
+    "name": "Salt",
+    "description": "Pure rock salt for cooking.",
+    "image": "salt.jpg"
+  },
+  {
+    "id": 7,
+    "name": "Tea",
+    "description": "Premium tea leaves.",
+    "image": "tea.jpg"
+  },
+  {
+    "id": 8,
+    "name": "Coffee",
+    "description": "Rich roasted coffee beans.",
+    "image": "coffee.jpg"
+  },
+  {
+    "id": 9,
+    "name": "Oil",
+    "description": "Cold-pressed vegetable oil.",
+    "image": "oil.jpg"
+  },
+  {
+    "id": 10,
+    "name": "Butter",
+    "description": "Creamy dairy butter.",
+    "image": "butter.jpg"
+  },
+  {
+    "id": 11,
+    "name": "Cheese",
+    "description": "Delicious cheese slices.",
+    "image": "cheese.jpg"
+  },
+  {
+    "id": 12,
+    "name": "Yogurt",
+    "description": "Fresh curd for breakfast.",
+    "image": "yogurt.jpg"
+  },
+  {
+    "id": 13,
+    "name": "Tomato",
+    "description": "Fresh red tomatoes.",
+    "image": "tomato.jpg"
+  },
+  {
+    "id": 14,
+    "name": "Potato",
+    "description": "Organic farm potatoes.",
+    "image": "potato.jpg"
+  },
+  {
+    "id": 15,
+    "name": "Onion",
+    "description": "Fresh onions for cooking.",
+    "image": "onion.jpg"
+  },
+  {
+    "id": 16,
+    "name": "Apple",
+    "description": "Fresh red apples.",
+    "image": "apple.jpg"
+  },
+  {
+    "id": 17,
+    "name": "Banana",
+    "description": "Ripe bananas full of energy.",
+    "image": "banana.jpg"
+  },
+  {
+    "id": 18,
+    "name": "Orange",
+    "description": "Sweet and juicy oranges.",
+    "image": "orange.jpg"
+  },
+  {
+    "id": 19,
+    "name": "Mango",
+    "description": "Seasonal king of fruits.",
+    "image": "mango.jpg"
+  },
+  {
+    "id": 20,
+    "name": "Cucumber",
+    "description": "Fresh cucumbers for salads.",
+    "image": "cucumber.jpg"
+  }
+]

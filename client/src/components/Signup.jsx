@@ -1,13 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate(); // for routing
 
   const handleSignup = (e) => {
     e.preventDefault();
     alert(`Account Created!\nName: ${name}\nEmail: ${email}`);
+    navigate("/login"); // redirect to login page after signup
   };
 
   return (
@@ -61,9 +64,12 @@ function Signup() {
 
         <p className="text-sm text-gray-600 text-center mt-4">
           Already have an account?{" "}
-          <a href="#" className="text-indigo-500 hover:underline">
+          <span
+            onClick={() => navigate("/login")}
+            className="text-indigo-500 hover:underline cursor-pointer"
+          >
             Login
-          </a>
+          </span>
         </p>
       </div>
     </div>
