@@ -4,9 +4,9 @@ const Navigation = () => {
   const navigate = useNavigate();
 
   return (
-    // <nav className="bg-indigo-500 text-white px-6 py-4 flex justify-between items-center shadow-lg z-10">
-        <nav className="bg-green-800 text-white px-6 py-4 flex justify-between items-center shadow-lg z-30 fixed w-full top-0 left-0">
-  
+    // <nav className="bg-green-950 text-white px-8 py-4 m-3 flex justify-between items-center shadow-lg z-30 fixed w-[96%] top-0 left-[2%] rounded-2xl">
+    <nav className="bg-green-950 text-white px-8 py-1 m-3 flex justify-between items-center shadow-lg z-30 fixed w-[96%] top-0 left-[2%] rounded-2xl">
+
       {/* Brand / Logo */}
       <h1
         className="text-2xl font-bold cursor-pointer"
@@ -17,7 +17,7 @@ const Navigation = () => {
 
       {/* Menu Items */}
       <ul className="flex space-x-6">
-        <li>  
+        <li>
           <Link to="/home" className="hover:text-gray-200">
             Home
           </Link>
@@ -42,10 +42,15 @@ const Navigation = () => {
             Contact
           </Link>
         </li>
+        
       </ul>
 
-   <Link to="/login">
-      <button className="cursor-pointer">login</button></Link>
+      <Link to="/login">
+  <button className="cursor-pointer bg-white text-green-950 font-semibold px-3 py-1.5 rounded-lg hover:bg-green-800 hover:text-white transition-all duration-200">
+    Login
+  </button>
+</Link>
+
     </nav>
   );
 };

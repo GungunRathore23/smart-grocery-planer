@@ -10,7 +10,7 @@ function Login() {
     e.preventDefault();
     // You can add real validation here
     alert(`Email: ${email}\nPassword: ${password}`);
-    navigate("/home"); // Redirect to Home page after login
+    navigate("/profile"); 
   };
 
   return (
@@ -45,7 +45,7 @@ function Login() {
 
           <button
             type="submit"
-            className="w-full bg-indigo-500 text-white py-2 rounded-lg hover:bg-indigo-600 transition-all duration-300"
+            className="w-full bg-green-950 text-white py-2 rounded-lg hover:bg-green-950transition-all duration-300"
           >
             Login
           </button>

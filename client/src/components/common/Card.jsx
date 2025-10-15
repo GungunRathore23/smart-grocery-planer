@@ -6,9 +6,6 @@ const Card = ({item}) => {
     <div className="max-w-sm bg-white rounded-2xl shadow-lg overflow-hidden hover:scale-105 transition-transform duration-300">
       <img
         className="w-full h-48 object-cover"
-        // src="rice.jpg"
-        // src={riceImg}
-        // src={require(`../assets/images/${item.image}`)}
        src={item.image}
         alt={item.name}
       />
@@ -18,7 +15,7 @@ const Card = ({item}) => {
         {item.description}
         </p>
 
-        {/* 👇 Button me Link lagao */}
+
         <Link
           to="/about"
           className="inline-block bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
