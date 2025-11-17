@@ -22,14 +22,9 @@ const Hero = () => {
                   onClick={() => navigate("/signup")}
                   className="bg-green-950 text-white px-6 py-3 rounded-lg hover:bg-green-900 transition-all duration-300 font-semibold shadow-md"
                 >
-                  Get Started
+                  Shop Now 
                 </button>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="bg-transparent text-white px-6 py-3 rounded-lg border border-white hover:bg-white hover:text-green-950 transition-all duration-300 font-semibold shadow-md"
-                >
-                  Login
-                </button>
+                
               </div>
             </div>
           </section>
