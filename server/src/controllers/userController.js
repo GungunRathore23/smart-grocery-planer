@@ -1,215 +1,263 @@
 const User = require("../models/userModel");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  storeRefreshToken,
+  verifyRefreshTokenInRedis,
+  removeRefreshTokenFromRedis,
+} = require("../utils/generateTokens"); 
+const redisClient = require("../config/redis");
+const mongoSanitize = require("mongo-sanitize");
+const sendEmail = require("../utils/sendEmail");
 const jwt = require("jsonwebtoken");
 
-/* -------------------------------------------------------
-   JWT TOKEN CREATOR
--------------------------------------------------------- */
-const createToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
-};
+// helper to create 6 digit OTP
+const createOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
-/* -------------------------------------------------------
-   SEND TOKEN IN COOKIE
--------------------------------------------------------- */
-const sendToken = (user, res, message) => {
-  const token = createToken(user._id);
-
-  res.cookie("authToken", token, {
-    httpOnly: true,
-    secure: false,     // set to true only when using HTTPS
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 Days
-  });
-
-  user.password = undefined;
-
-  return res.status(200).json({
-    success: true,
-    message,
-    user,
-  });
-};
-
-/* -------------------------------------------------------
-   REGISTER USER  (NO DOB, NO AGE)
--------------------------------------------------------- */
-exports.registerUser = async (req, res) => {
+// ---------- REGISTER (create user + send verification OTP) ----------
+exports.register = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
-
-    if (!name || !email || !password || !phone) {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
-    }
 
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: "Email already exists" });
-    }
+    const cleanEmail = mongoSanitize(email.toLowerCase().trim());
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) return res.status(400).json({ message: "Email already exists" });
 
-    const user = await User.create({
-      name,
-      email,
+    const otp = createOtp();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    const user = new User({
+      username,
+      email: cleanEmail,
       password,
-      phone,
       isVerified: false,
+      otpCode: otp,
+      otpExpiresAt: otpExpiry,
     });
 
-    // Backend verify URL (for Postman & testing)
-    const verifyUrl = `${process.env.BACKEND_URL}/api/user/verify-email/${user._id}`;
+    await user.save();
 
-    console.log("Email Verify URL:", verifyUrl);
+    // send OTP email
+    try {
+      const html = `<p>Your Smarter Grocery Planner verification code is: <b>${otp}</b>. It expires in 10 minutes.</p>`;
+      await sendEmail(user.email, "Verify your account — Smarter Grocery Planner", html);
+    } catch (emailErr) {
+      // don't reveal internals
+      console.error("Email send error:", emailErr.message);
+    }
 
     return res.status(201).json({
       success: true,
-      message: "Registered successfully. Please verify your email.",
-      verifyUrl: verifyUrl,
-      userId: user._id,
+      message: "User registered. OTP sent to email. Verify to login.",
+      email: user.email,
     });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Registration failed" });
   }
 };
 
-
-/* -------------------------------------------------------
-   VERIFY EMAIL (NO TOKEN)
--------------------------------------------------------- */
-exports.verifyEmail = async (req, res) => {
+// ---------- VERIFY OTP (email verification) ----------
+exports.verifyOtp = async (req, res) => {
   try {
-    const userId = req.params.id;
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ message: "Email and OTP required" });
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(400).json({ message: "Invalid verification link" });
-    }
+    const cleanEmail = mongoSanitize(email.toLowerCase().trim());
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.isVerified) return res.status(400).json({ message: "User already verified" });
 
-    // FIXED FIELD
+    if (!user.otpCode || user.otpCode !== otp) return res.status(400).json({ message: "Invalid OTP" });
+    if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) return res.status(400).json({ message: "OTP expired" });
+
     user.isVerified = true;
-
+    user.otpCode = null;
+    user.otpExpiresAt = null;
     await user.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Email verified successfully",
-    });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.json({ success: true, message: "Email verified successfully. You can now login." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "OTP verification failed" });
   }
 };
 
-
-
-/* -------------------------------------------------------
-   LOGIN USER
--------------------------------------------------------- */
-exports.loginUser = async (req, res) => {
+// ---------- LOGIN ----------
+exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const cleanEmail = mongoSanitize((email || "").toLowerCase().trim());
+    if (!cleanEmail || !password) return res.status(400).json({ message: "Email and password required" });
 
-    if (!email || !password)
-      return res.status(400).json({ message: "Email & Password required" });
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
-    const user = await User.findOne({ email }).select("+password");
-    if (!user)
-      return res.status(401).json({ message: "Invalid email or password" });
+    const match = await user.comparePassword(password);
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
-    if (!user.isVerified)
-      return res
-        .status(403)
-        .json({ message: "Please verify your email first" });
+    if (!user.isVerified) return res.status(403).json({ message: "Please verify your email before logging in" });
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid email or password" });
+    const payload = { id: user._id.toString(), role: user.role };
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
 
-    return sendToken(user, res, "Login successful");
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // store refresh token in redis
+    await storeRefreshToken(refreshToken, user._id);
+
+    // set cookie
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+    });
+
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+    }); 
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      accessToken,
+      refreshToken,
+      user: { id: user._id, username: user.username, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Login failed" });
   }
 };
 
-/* -------------------------------------------------------
-   GET MY PROFILE
--------------------------------------------------------- */
-exports.getMyProfile = async (req, res) => {
+// ---------- REFRESH ACCESS TOKEN ----------
+exports.refreshToken = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
-    return res.status(200).json({ success: true, user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const token = req.cookies.refreshToken || req.body.refreshToken;
+    if (!token) return res.status(401).json({ message: "No refresh token provided" });
+
+    // verify token structurally
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET_KEY);
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    // verify token exists in redis
+    const userId = await verifyRefreshTokenInRedis(token);
+    if (!userId || userId !== payload.id) return res.status(401).json({ message: "Invalid session" });
+
+    // create new access token (and optionally rotate refresh token)
+    const newAccess = generateAccessToken({ id: payload.id, role: payload.role });
+    // rotate refresh token for security (optional — implemented here)
+    const newRefresh = generateRefreshToken({ id: payload.id, role: payload.role });
+    await storeRefreshToken(newRefresh, payload.id);
+    // remove old refresh token from redis
+    await removeRefreshTokenFromRedis(token);
+
+    // set new cookie
+    res.cookie("refreshToken", newRefresh, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({ success: true, accessToken: newAccess });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Could not refresh token" });
   }
 };
 
-/* -------------------------------------------------------
-   UPDATE USER (NAME, PHONE ONLY)
--------------------------------------------------------- */
-exports.updateUserInfo = async (req, res) => {
+// ---------- FORGOT PASSWORD (send reset OTP) ----------
+exports.forgotPassword = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { email } = req.body;
+    const cleanEmail = mongoSanitize((email || "").toLowerCase().trim());
+    if (!cleanEmail) return res.status(400).json({ message: "Email required" });
 
-    const updates = {
-      name: req.body.name,
-      phone: req.body.phone,
-    };
-
-    const user = await User.findByIdAndUpdate(id, updates, { new: true });
-
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    return res.status(200).json({
-      success: true,
-      message: "User updated",
-      user,
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+    const otp = createOtp();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-/* -------------------------------------------------------
-   UPDATE PASSWORD
--------------------------------------------------------- */
-exports.updatePassword = async (req, res) => {
-  try {
-    const { newPassword } = req.body;
-
-    const user = await User.findById(req.params.id).select("+password");
-
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
-
-    user.password = newPassword;
+    user.resetOtpCode = otp;
+    user.resetOtpExpiresAt = otpExpiry;
     await user.save();
 
-    return res.status(200).json({ success: true, message: "Password updated" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // send email
+    try {
+      const html = `<p>Your Smarter Grocery Planner password reset code is: <b>${otp}</b>. It expires in 10 minutes.</p>`;
+      await sendEmail(user.email, "Password reset code — Smarter Grocery Planner", html);
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr.message);
+    }
+
+    return res.json({ success: true, message: "Password reset OTP sent to email" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Forgot password failed" });
   }
 };
 
-/* -------------------------------------------------------
-   DELETE USER
--------------------------------------------------------- */
-exports.deleteUser = async (req, res) => {
+// ---------- RESET PASSWORD ----------
+exports.resetPassword = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) return res.status(400).json({ message: "Email, OTP and new password required" });
 
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    const cleanEmail = mongoSanitize((email || "").toLowerCase().trim());
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    return res.status(200).json({ success: true, message: "User deleted" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!user.resetOtpCode || user.resetOtpCode !== otp) return res.status(400).json({ message: "Invalid reset OTP" });
+    if (!user.resetOtpExpiresAt || user.resetOtpExpiresAt < new Date()) return res.status(400).json({ message: "Reset OTP expired" });
+
+    user.password = newPassword; // will be hashed by pre-save
+    user.resetOtpCode = null;
+    user.resetOtpExpiresAt = null;
+    await user.save();
+
+    return res.json({ success: true, message: "Password reset successful. You can login now." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Reset password failed" });
   }
 };
 
-/* -------------------------------------------------------
-   LOGOUT USER
--------------------------------------------------------- */
-exports.logoutUser = (req, res) => {
-  res.clearCookie("authToken");
-  return res.status(200).json({ success: true, message: "Logged out" });
+// ---------- LOGOUT ----------
+exports.logout = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken || req.body.refreshToken;
+    if (token) {
+      await removeRefreshTokenFromRedis(token);
+    }
+
+    res.clearCookie("refreshToken");
+    return res.json({ success: true, message: "Logged out successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Logout failed" });
+  }
+};
+
+// ---------- GET PROFILE ----------
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password -otpCode -resetOtpCode -otpExpiresAt -resetOtpExpiresAt");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json({ success: true, user });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to fetch profile" });
+  }
 };

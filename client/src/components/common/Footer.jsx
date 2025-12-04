@@ -75,7 +75,7 @@ const Footer = () => {
             Subscribe to get the latest deals, offers, and fresh arrivals.
           </p>
 
-          {/* ✅ Fixed Email Subscribe Bar */}
+          {/* Fixed Email Subscribe Bar */}
           <form className="flex items-center w-full bg-white rounded-full overflow-hidden shadow-md">
             <input
               type="email"

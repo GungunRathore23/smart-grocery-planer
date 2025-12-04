@@ -1,16 +1,36 @@
+import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate(); // for routing
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // You can add real validation here
-    alert(`Email: ${email}\nPassword: ${password}`);
-    navigate("/profile"); 
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5555/api/user/login",
+        { email, password },
+        { withCredentials: true }
+      );
+
+      alert(response.data.message || "Login Successful!");
+
+      // ⭐ SET LOGIN TRUE
+      localStorage.setItem("isLoggedIn", "true");
+
+      // ⭐ SAVE USER DATA TO LOCAL STORAGE (Bonus)
+      localStorage.setItem("userData", JSON.stringify(response.data.user));
+
+      // ⭐ REDIRECT TO DASHBOARD
+      navigate("/");
+    } catch (error) {
+      console.log(error);
+      alert(error.response?.data?.message || "Login Failed");
+    }
   };
 
   return (
@@ -28,7 +48,7 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
             />
           </div>
 
@@ -39,20 +59,20 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-green-950 text-white py-2 rounded-lg hover:bg-green-950transition-all duration-300"
+            className="w-full bg-green-800 text-white py-2 rounded-lg hover:bg-green-900 transition-all duration-300"
           >
             Login
           </button>
         </form>
 
         <p className="text-sm text-gray-600 text-center mt-4">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <span
             onClick={() => navigate("/signup")}
             className="text-indigo-500 hover:underline cursor-pointer"

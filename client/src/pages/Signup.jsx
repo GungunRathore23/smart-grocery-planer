@@ -1,16 +1,32 @@
+import axios from "axios";
 import { useState } from "react";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 function Signup() {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate(); // for routing
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignup = (e) => {
+  const navigate = useNavigate();
+
+  const handleSignup = async (e) => {
     e.preventDefault();
-    alert(`Account Created!\nName: ${name}\nEmail: ${email}`);
-    navigate("/login"); // redirect to login page after signup
+    try {
+      const response = await axios.post(
+        "http://localhost:5555/api/user/register",
+        { username, email, password },
+        { withCredentials: true }
+      );
+
+      alert(response.data.message || "Account created! Please verify your email.");
+
+      navigate(`/verify-email/${response.data.verifyURL?.split("/").pop()}`);
+    } catch (error) {
+      console.log(error);
+      alert(error.response?.data?.message || "Signup Failed");
+    }
   };
 
   return (
@@ -21,37 +37,43 @@ function Signup() {
         </h2>
 
         <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              placeholder="Enter Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
-          </div>
 
-          <div>
-            <input
-              type="email"
-              placeholder="Enter Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Enter Name"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
 
-          <div>
+          <input
+            type="email"
+            placeholder="Enter Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+
+          {/* Password + Eye Icon */}
+          <div className="relative">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Create Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
+
+            {/* Eye Icon */}
+            <span
+              className="absolute right-3 top-3 text-gray-500 cursor-pointer text-xl"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
           </div>
 
           <button

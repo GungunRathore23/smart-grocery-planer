@@ -1,6 +1,6 @@
 const Product = require("../models/productModel");
 
-// 1. Add Product
+//Add Product
 exports.addProduct = async (req, res) => {
   try {
     const product = await Product.create(req.body);
@@ -13,7 +13,7 @@ exports.addProduct = async (req, res) => {
   }
 };
 
-// 2. Get All Products
+// Get All Products
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find();
@@ -23,7 +23,7 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-// 3. Get Product by ID
+//Get Product by ID
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -34,7 +34,7 @@ exports.getProductById = async (req, res) => {
   }
 };
 
-// 4. Update Product
+//Update Product
 exports.updateProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
@@ -48,7 +48,7 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-//  5. Delete Product
+//Delete Product
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
@@ -59,7 +59,7 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// 6. Get Products by Category
+//Get Products by Category
 exports.getProductsByCategory = async (req, res) => {
   try {
     const { name } = req.params;
@@ -72,7 +72,7 @@ exports.getProductsByCategory = async (req, res) => {
   }
 };
 
-//  7. Search Products by Name
+//Search Products by Name
 exports.searchProducts = async (req, res) => {
   try {
     const { q } = req.query;
@@ -87,7 +87,7 @@ exports.searchProducts = async (req, res) => {
   }
 };
 
-// 8. Update Stock Quantity
+//Update Stock Quantity
 exports.updateStock = async (req, res) => {
   try {
     const { id } = req.params;
@@ -103,7 +103,7 @@ exports.updateStock = async (req, res) => {
   }
 };
 
-// 9. Toggle Availability Status
+//Toggle Availability Status
 exports.toggleAvailability = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -118,7 +118,7 @@ exports.toggleAvailability = async (req, res) => {
   }
 };
 
-// 10. Recommended Products (price or custom logic)
+//Recommended Products (price or custom logic)
 exports.getRecommendedProducts = async (req, res) => {
   try {
     const products = await Product.find({ price: { $lte: 200 }, status: "Available" });
